@@ -13,6 +13,7 @@ import {
   handleConfirmDeleteCallback,
   handleCancelDeleteCallback,
 } from "./callbacks/delete";
+import { chartCallbackHandler } from "./callbacks/chart";
 import { startReminderService } from "./services/reminder.service";
 
 async function main(): Promise<void> {
@@ -41,6 +42,9 @@ async function main(): Promise<void> {
   bot.callbackQuery(/^delete:\d+$/, handleDeleteCallback);
   bot.callbackQuery(/^confirm_delete:\d+$/, handleConfirmDeleteCallback);
   bot.callbackQuery(/^cancel_delete:\d+$/, handleCancelDeleteCallback);
+
+  // Chart callbacks (interactive chart buttons)
+  bot.callbackQuery(/^chart:/, chartCallbackHandler);
 
   // Reminder callbacks (all prefixed with rd:, rh:, rm:)
   bot.callbackQuery(/^r[dhm]:/, handleReminderCallback);

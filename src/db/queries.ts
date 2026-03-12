@@ -115,6 +115,35 @@ export async function getAllEntries(): Promise<WeightEntry[]> {
   return result.rows;
 }
 
+export async function getUserEntriesInRange(
+  telegramUserId: number,
+  since: Date
+): Promise<WeightEntry[]> {
+  const result = await pool.query(
+    `SELECT w.id, w.telegram_user_id, w.weight_kg, w.recorded_at, u.display_name
+     FROM weight_entries w
+     JOIN users u ON u.telegram_id = w.telegram_user_id
+     WHERE w.telegram_user_id = $1 AND w.recorded_at >= $2
+     ORDER BY w.recorded_at ASC`,
+    [telegramUserId, since]
+  );
+  return result.rows;
+}
+
+export async function getUserAllEntries(
+  telegramUserId: number
+): Promise<WeightEntry[]> {
+  const result = await pool.query(
+    `SELECT w.id, w.telegram_user_id, w.weight_kg, w.recorded_at, u.display_name
+     FROM weight_entries w
+     JOIN users u ON u.telegram_id = w.telegram_user_id
+     WHERE w.telegram_user_id = $1
+     ORDER BY w.recorded_at ASC`,
+    [telegramUserId]
+  );
+  return result.rows;
+}
+
 // --- Group Settings ---
 
 export interface GroupSettings {
