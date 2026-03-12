@@ -6,15 +6,7 @@ import { logCommand, handlePlainNumber } from "./commands/log";
 import { historyCommand } from "./commands/history";
 import { statsCommand } from "./commands/stats";
 import { chartCommand } from "./commands/chart";
-import {
-  reminderCommand,
-  handleReminderDayCallback,
-  handleReminderDailyCallback,
-  handleReminderNextCallback,
-  handleReminderCancelCallback,
-  handleReminderTimeMessage,
-  hasActiveWizard,
-} from "./commands/reminder";
+import { reminderCommand, handleReminderCallback } from "./commands/reminder";
 import { handleEditCallback, handleEditMessage, cancelEdit } from "./callbacks/edit";
 import {
   handleDeleteCallback,
@@ -49,21 +41,14 @@ async function main(): Promise<void> {
   bot.callbackQuery(/^delete:\d+$/, handleDeleteCallback);
   bot.callbackQuery(/^confirm_delete:\d+$/, handleConfirmDeleteCallback);
   bot.callbackQuery(/^cancel_delete:\d+$/, handleCancelDeleteCallback);
-  bot.callbackQuery(/^reminder_day:\d$/, handleReminderDayCallback);
-  bot.callbackQuery("reminder_daily", handleReminderDailyCallback);
-  bot.callbackQuery("reminder_next", handleReminderNextCallback);
-  bot.callbackQuery("reminder_cancel", handleReminderCancelCallback);
 
-  // Text message handler (plain numbers + edit responses + reminder time)
+  // Reminder callbacks (all prefixed with rd:, rh:, rm:)
+  bot.callbackQuery(/^r[dhm]:/, handleReminderCallback);
+
+  // Text message handler (plain numbers + edit responses)
   bot.on("message:text", async (ctx) => {
     // Check if user is in edit mode
     if (await handleEditMessage(ctx)) return;
-
-    // Check if chat has active reminder wizard
-    const chatId = ctx.chat?.id;
-    if (chatId && hasActiveWizard(chatId)) {
-      if (await handleReminderTimeMessage(ctx)) return;
-    }
 
     // Try to interpret as weight
     await handlePlainNumber(ctx);
