@@ -14,6 +14,7 @@ Befehle:
 /chart 7d|30d|90d|all - Grafik für Zeitraum
 /reminder - Erinnerung einrichten
 /reminder off - Erinnerung deaktivieren
+/nachtragen - Gewicht für vergangenen Tag eintragen
 /edit - Eintrag bearbeiten
 /delete - Eintrag löschen
 /help - Diese Hilfe anzeigen`;

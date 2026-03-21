@@ -16,6 +16,7 @@ import {
 import { chartCallbackHandler } from "./callbacks/chart";
 import { deleteCommand } from "./commands/delete";
 import { editCommand } from "./commands/edit";
+import { nachtragenCommand, handleBacklogCallback, handleBacklogMessage, cancelBacklog } from "./commands/nachtragen";
 import { startReminderService } from "./services/reminder.service";
 import { logger, cleanOldLogs } from "./utils/logger";
 import { loggingMiddleware } from "./middleware/logging";
@@ -41,10 +42,13 @@ async function main(): Promise<void> {
   bot.command("chart", chartCommand);
   bot.command("edit", editCommand);
   bot.command("delete", deleteCommand);
+  bot.command("nachtragen", nachtragenCommand);
   bot.command("reminder", reminderCommand);
   bot.command("cancel", async (ctx) => {
-    if (ctx.from && cancelEdit(ctx.from.id)) {
-      await ctx.reply("Bearbeitung abgebrochen.");
+    if (!ctx.from) return;
+    const cancelled = cancelEdit(ctx.from.id) || cancelBacklog(ctx.from.id);
+    if (cancelled) {
+      await ctx.reply("Abgebrochen.");
     }
   });
 
@@ -54,16 +58,22 @@ async function main(): Promise<void> {
   bot.callbackQuery(/^confirm_delete:\d+$/, handleConfirmDeleteCallback);
   bot.callbackQuery(/^cancel_delete:\d+$/, handleCancelDeleteCallback);
 
+  // Backlog callbacks (nachtragen date selection)
+  bot.callbackQuery(/^backlog:/, handleBacklogCallback);
+
   // Chart callbacks (interactive chart buttons)
   bot.callbackQuery(/^chart:/, chartCallbackHandler);
 
   // Reminder callbacks (all prefixed with rd:, rh:, rm:)
   bot.callbackQuery(/^r[dhm]:/, handleReminderCallback);
 
-  // Text message handler (plain numbers + edit responses)
+  // Text message handler (plain numbers + edit/backlog responses)
   bot.on("message:text", async (ctx) => {
     // Check if user is in edit mode
     if (await handleEditMessage(ctx)) return;
+
+    // Check if user is entering backlog data
+    if (await handleBacklogMessage(ctx)) return;
 
     // Try to interpret as weight
     await handlePlainNumber(ctx);
