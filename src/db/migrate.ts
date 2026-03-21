@@ -1,6 +1,9 @@
 import { pool } from "./client";
 
 export async function runMigrations(): Promise<void> {
+  // Ensure public schema exists (in case it was dropped)
+  await pool.query(`CREATE SCHEMA IF NOT EXISTS public;`);
+
   // Migration tracking table
   await pool.query(`
     CREATE TABLE IF NOT EXISTS migrations (
