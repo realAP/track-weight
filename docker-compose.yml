@@ -2,7 +2,7 @@ services:
   bot:
     build: .
     environment:
-      BOT_TOKEN: '${BOT_TOKEN}'
+      BOT_TOKEN: '${ENV_BOT_TOKEN}'
       DATABASE_URL: 'postgresql://${ENV_POSTGRES_USER}:${ENV_POSTGRES_PASSWORD}@db:5432/${ENV_POSTGRES_DATABASE}'
     volumes:
       - botlogs:/app/logs
@@ -30,7 +30,6 @@ services:
 
   backup:
     image: devp1337/backup:2.0.0
-    hostname: ${BACKUP_HOSTNAME:-weight-backup}
     environment:
       PROVISION_MODE: postgres
       POSTGRES_USER: '${ENV_POSTGRES_USER}'
@@ -39,9 +38,9 @@ services:
       POSTGRES_HOST: db
       RESTIC_REPOSITORY_NAME: '${ENV_RESTIC_REPOSITORY_NAME}'
       RESTIC_PASSWORD: '${ENV_RESTIC_PASSWORD}'
-      TELEGRAM_TOKEN: '${BOT_TOKEN}'
+      TELEGRAM_TOKEN: '${ENV_BOT_TOKEN}'
       TELEGRAM_CHAT_ID: '${ENV_TELEGRAM_CHAT_ID}'
-      TELEGRAM_COMMENT: "Weight Tracker DB Backup"
+      TELEGRAM_COMMENT: '${ENV_TELEGRAM_COMMENT}'
       CRON: '${ENV_CRON}'
       TARGET_DOMAIN: '${ENV_TARGET_DOMAIN}'
       TARGET_DOMAIN_USER: '${ENV_TARGET_DOMAIN_USER}'
