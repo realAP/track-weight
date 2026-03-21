@@ -1,4 +1,5 @@
 import { pool } from "./client";
+import { logger } from "../utils/logger";
 
 export async function runMigrations(): Promise<void> {
   // Ensure public schema exists (in case it was dropped)
@@ -42,7 +43,7 @@ export async function runMigrations(): Promise<void> {
   // Run versioned migrations
   await runVersionedMigrations();
 
-  console.log("Database migrations completed.");
+  logger.info("Database migrations completed.");
 }
 
 interface Migration {
@@ -66,7 +67,7 @@ async function runVersionedMigrations(): Promise<void> {
     );
 
     if (result.rows.length === 0) {
-      console.log(`Running migration: ${migration.name}`);
+      logger.info(`Running migration: ${migration.name}`);
       await pool.query(migration.up);
       await pool.query(
         `INSERT INTO migrations (name) VALUES ($1)`,

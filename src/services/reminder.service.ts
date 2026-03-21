@@ -1,6 +1,7 @@
 import * as cron from "node-cron";
 import { Bot, Context } from "grammy";
 import { getAllGroupSettings, getUsersWhoLoggedSince, getAllUsersInGroup } from "../db/queries";
+import { logger } from "../utils/logger";
 
 export function startReminderService(bot: Bot<Context>): void {
   // Check every minute if any group needs a reminder
@@ -8,11 +9,11 @@ export function startReminderService(bot: Bot<Context>): void {
     try {
       await checkReminders(bot);
     } catch (err) {
-      console.error("Reminder check error:", err);
+      logger.error("Reminder check error:", err);
     }
   });
 
-  console.log("Reminder service started.");
+  logger.info("Reminder service started.");
 }
 
 async function checkReminders(bot: Bot<Context>): Promise<void> {
@@ -60,7 +61,7 @@ async function sendReminder(bot: Bot<Context>, chatId: number, days: number[]): 
   try {
     await bot.api.sendMessage(chatId, lines.join("\n"));
   } catch (err) {
-    console.error(`Failed to send reminder to chat ${chatId}:`, err);
+    logger.error(`Failed to send reminder to chat ${chatId}:`, err);
   }
 }
 

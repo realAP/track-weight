@@ -15,13 +15,20 @@ import {
 } from "./callbacks/delete";
 import { chartCallbackHandler } from "./callbacks/chart";
 import { startReminderService } from "./services/reminder.service";
+import { logger, cleanOldLogs } from "./utils/logger";
+import { loggingMiddleware } from "./middleware/logging";
 
 async function main(): Promise<void> {
-  console.log("Starting weight tracker bot...");
+  logger.info("Starting weight tracker bot...");
+
+  cleanOldLogs();
 
   await runMigrations();
 
   const bot = new Bot(config.botToken);
+
+  // Log all interactions
+  bot.use(loggingMiddleware);
 
   // Commands
   bot.command("start", startCommand);
@@ -60,7 +67,7 @@ async function main(): Promise<void> {
 
   // Error handler
   bot.catch((err) => {
-    console.error("Bot error:", err);
+    logger.error("Bot error:", err);
   });
 
   // Start reminder cron
@@ -68,11 +75,11 @@ async function main(): Promise<void> {
 
   // Start bot
   await bot.start({
-    onStart: () => console.log("Bot is running!"),
+    onStart: () => logger.info("Bot is running!"),
   });
 }
 
 main().catch((err) => {
-  console.error("Fatal error:", err);
+  logger.error("Fatal error:", err);
   process.exit(1);
 });
