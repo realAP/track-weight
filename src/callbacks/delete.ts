@@ -17,7 +17,7 @@ export async function handleDeleteCallback(ctx: Context): Promise<void> {
     return;
   }
 
-  if (entry.telegram_user_id !== userId) {
+  if (Number(entry.telegram_user_id) !== userId) {
     await ctx.answerCallbackQuery({ text: "Das ist nicht dein Eintrag." });
     return;
   }
@@ -47,7 +47,7 @@ export async function handleConfirmDeleteCallback(ctx: Context): Promise<void> {
     return;
   }
 
-  if (entry.telegram_user_id !== userId) {
+  if (Number(entry.telegram_user_id) !== userId) {
     await ctx.answerCallbackQuery({ text: "Das ist nicht dein Eintrag." });
     return;
   }

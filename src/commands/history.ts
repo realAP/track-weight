@@ -17,7 +17,7 @@ export async function historyCommand(ctx: CommandContext<Context>): Promise<void
   let text = "Letzte Einträge:\n\n";
 
   for (const entry of entries) {
-    const isOwn = entry.telegram_user_id === userId;
+    const isOwn = Number(entry.telegram_user_id) === userId;
     const name = isOwn ? "Du" : entry.display_name;
     text += `${name} - ${formatWeight(entry.weight_kg)} (${formatDateTime(entry.recorded_at)})`;
     if (isOwn) {
@@ -26,7 +26,7 @@ export async function historyCommand(ctx: CommandContext<Context>): Promise<void
     text += "\n";
   }
 
-  const ownEntries = entries.filter((e) => e.telegram_user_id === userId);
+  const ownEntries = entries.filter((e) => Number(e.telegram_user_id) === userId);
 
   if (ownEntries.length > 0) {
     const keyboard = new InlineKeyboard();

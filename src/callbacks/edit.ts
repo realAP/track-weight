@@ -20,7 +20,7 @@ export async function handleEditCallback(ctx: Context): Promise<void> {
     return;
   }
 
-  if (entry.telegram_user_id !== userId) {
+  if (Number(entry.telegram_user_id) !== userId) {
     await ctx.answerCallbackQuery({ text: "Das ist nicht dein Eintrag." });
     return;
   }
