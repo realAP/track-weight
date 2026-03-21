@@ -24,5 +24,28 @@ services:
       retries: 5
     restart: unless-stopped
 
+  backup:
+    image: devp1337/backup:latest
+    hostname: ${BACKUP_HOSTNAME:-weight-backup}
+    environment:
+      ENV_PROVISION_MODE: "postgres"
+      ENV_POSTGRES_USER: weighttracker
+      ENV_POSTGRES_PASSWORD: ${DB_PASSWORD}
+      ENV_POSTGRES_DATABASE: weighttracker
+      ENV_POSTGRES_HOST: db
+      ENV_RESTIC_REPOSITORY_NAME: ${BACKUP_RESTIC_REPO}
+      ENV_RESTIC_PASSWORD: ${BACKUP_RESTIC_PASSWORD}
+      ENV_TELEGRAM_TOKEN: ${BOT_TOKEN}
+      ENV_TELEGRAM_CHAT_ID: ${BACKUP_TELEGRAM_CHAT_ID}
+      ENV_TELEGRAM_COMMENT: "Weight Tracker DB Backup"
+      ENV_CRON: ${BACKUP_CRON:-0 2 * * *}
+      ENV_TARGET_DOMAIN: ${BACKUP_SFTP_HOST}
+      ENV_TARGET_DOMAIN_USER: ${BACKUP_SFTP_USER}
+      ENV_SSH_PRIVATE_KEY_BASE64: ${BACKUP_SSH_KEY_BASE64}
+    depends_on:
+      db:
+        condition: service_healthy
+    restart: unless-stopped
+
 volumes:
   pgdata:
