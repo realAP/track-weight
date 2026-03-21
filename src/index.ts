@@ -14,6 +14,7 @@ import {
   handleCancelDeleteCallback,
 } from "./callbacks/delete";
 import { chartCallbackHandler } from "./callbacks/chart";
+import { deleteCommand } from "./commands/delete";
 import { startReminderService } from "./services/reminder.service";
 import { logger, cleanOldLogs } from "./utils/logger";
 import { loggingMiddleware } from "./middleware/logging";
@@ -37,6 +38,7 @@ async function main(): Promise<void> {
   bot.command("history", historyCommand);
   bot.command("stats", statsCommand);
   bot.command("chart", chartCommand);
+  bot.command("delete", deleteCommand);
   bot.command("reminder", reminderCommand);
   bot.command("cancel", async (ctx) => {
     if (ctx.from && cancelEdit(ctx.from.id)) {
