@@ -38,8 +38,8 @@ async function sendReminder(bot: Bot<Context>, chatId: number, days: number[]): 
   const now = new Date();
   const lastReminderDate = findPreviousReminderDate(now, days);
 
-  const allUsers = await getAllUsersInGroup();
-  const loggedUserIds = await getUsersWhoLoggedSince(lastReminderDate);
+  const allUsers = await getAllUsersInGroup(chatId);
+  const loggedUserIds = await getUsersWhoLoggedSince(chatId, lastReminderDate);
 
   const lines: string[] = ["Zeit zum Wiegen! ⚖️\n"];
 

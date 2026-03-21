@@ -3,7 +3,10 @@ import { getEntriesInRange, getAllEntries } from "../db/queries";
 import { formatWeight } from "../utils/format";
 
 export async function statsCommand(ctx: CommandContext<Context>): Promise<void> {
-  const allEntries = await getAllEntries();
+  const chatId = ctx.chat?.id;
+  if (!chatId) return;
+
+  const allEntries = await getAllEntries(chatId);
 
   if (allEntries.length === 0) {
     await ctx.reply("Noch keine Einträge vorhanden.");
@@ -22,12 +25,12 @@ export async function statsCommand(ctx: CommandContext<Context>): Promise<void> 
 
   const sevenDaysAgo = new Date(now);
   sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
-  const last7d = await getEntriesInRange(sevenDaysAgo);
+  const last7d = await getEntriesInRange(chatId, sevenDaysAgo);
   const trend7d = calcTrend(last7d.map((e) => Number(e.weight_kg)));
 
   const thirtyDaysAgo = new Date(now);
   thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
-  const last30d = await getEntriesInRange(thirtyDaysAgo);
+  const last30d = await getEntriesInRange(chatId, thirtyDaysAgo);
   const trend30d = calcTrend(last30d.map((e) => Number(e.weight_kg)));
 
   const lines = [

@@ -4,9 +4,10 @@ import { formatWeight, formatDateTime } from "../utils/format";
 
 export async function historyCommand(ctx: CommandContext<Context>): Promise<void> {
   const userId = ctx.from?.id;
-  if (!userId) return;
+  const chatId = ctx.chat?.id;
+  if (!userId || !chatId) return;
 
-  const entries = await getRecentEntries(15);
+  const entries = await getRecentEntries(chatId, 15);
 
   if (entries.length === 0) {
     await ctx.reply("Noch keine Einträge vorhanden.");

@@ -53,30 +53,32 @@ export function getSinceDate(period: ChartPeriod): Date | null {
 export async function loadChartEntries(
   scope: ChartScope,
   period: ChartPeriod,
-  telegramUserId: number
+  telegramUserId: number,
+  chatId: number
 ) {
   const since = getSinceDate(period);
 
   if (scope === "me") {
     return since
-      ? await getUserEntriesInRange(telegramUserId, since)
-      : await getUserAllEntries(telegramUserId);
+      ? await getUserEntriesInRange(telegramUserId, chatId, since)
+      : await getUserAllEntries(telegramUserId, chatId);
   } else {
     return since
-      ? await getEntriesInRange(since)
-      : await getAllEntries();
+      ? await getEntriesInRange(chatId, since)
+      : await getAllEntries(chatId);
   }
 }
 
 export async function chartCommand(ctx: CommandContext<Context>): Promise<void> {
   const userId = ctx.from?.id;
-  if (!userId) return;
+  const chatId = ctx.chat?.id;
+  if (!userId || !chatId) return;
 
   const scope: ChartScope = "me";
   const mode: ChartMode = "absolute";
   const period: ChartPeriod = "30d";
 
-  const entries = await loadChartEntries(scope, period, userId);
+  const entries = await loadChartEntries(scope, period, userId, chatId);
 
   if (entries.length < 2) {
     await ctx.reply("Zu wenig Einträge für eine Grafik (mindestens 2 nötig).");

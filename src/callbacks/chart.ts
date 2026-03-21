@@ -20,8 +20,9 @@ export async function chartCallbackHandler(ctx: Context): Promise<void> {
   const [, ownerIdStr, scopeStr, modeStr, periodStr] = parts;
   const ownerId = parseInt(ownerIdStr);
   const callerId = ctx.from?.id;
+  const chatId = ctx.chat?.id;
 
-  if (!callerId || callerId !== ownerId) {
+  if (!callerId || !chatId || callerId !== ownerId) {
     await ctx.answerCallbackQuery({
       text: "Nur wer /chart aufgerufen hat kann die Buttons nutzen.",
       show_alert: true,
@@ -33,7 +34,7 @@ export async function chartCallbackHandler(ctx: Context): Promise<void> {
   const mode = modeStr as ChartMode;
   const period = periodStr as ChartPeriod;
 
-  const entries = await loadChartEntries(scope, period, callerId);
+  const entries = await loadChartEntries(scope, period, callerId, chatId);
 
   if (entries.length < 2) {
     await ctx.answerCallbackQuery({

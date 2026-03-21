@@ -28,8 +28,11 @@ export async function logCommand(ctx: CommandContext<Context>): Promise<void> {
     recordedAt = parsed;
   }
 
+  const chatId = ctx.chat?.id;
+  if (!chatId) return;
+
   await upsertUser(user.id, user.first_name);
-  await addWeightEntry(user.id, weight, recordedAt);
+  await addWeightEntry(user.id, chatId, weight, recordedAt);
 
   const dateStr = recordedAt ? ` (${formatDate(recordedAt)})` : "";
   await ctx.reply(`${formatWeight(weight)} eingetragen${dateStr}`);
@@ -39,11 +42,14 @@ export async function handlePlainNumber(ctx: Context): Promise<void> {
   const text = ctx.message?.text?.trim();
   if (!text || !ctx.from) return;
 
+  const chatId = ctx.chat?.id;
+  if (!chatId) return;
+
   const weight = parseWeight(text);
   if (weight === null) return;
 
   await upsertUser(ctx.from.id, ctx.from.first_name);
-  await addWeightEntry(ctx.from.id, weight);
+  await addWeightEntry(ctx.from.id, chatId, weight);
 
   await ctx.reply(`${formatWeight(weight)} eingetragen`);
 }
