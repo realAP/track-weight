@@ -28,6 +28,7 @@ export interface WeightEntry {
   weight_kg: number;
   recorded_at: Date;
   display_name: string;
+  bot_message_id: number | null;
 }
 
 export async function addWeightEntry(
@@ -80,6 +81,13 @@ export async function getEntryById(id: number): Promise<WeightEntry | null> {
     [id]
   );
   return result.rows[0] ?? null;
+}
+
+export async function setBotMessageId(entryId: number, botMessageId: number): Promise<void> {
+  await pool.query(
+    `UPDATE weight_entries SET bot_message_id = $2 WHERE id = $1`,
+    [entryId, botMessageId]
+  );
 }
 
 export async function updateWeightEntry(id: number, weightKg: number): Promise<void> {

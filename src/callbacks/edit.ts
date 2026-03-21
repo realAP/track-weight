@@ -1,6 +1,7 @@
 import { Context } from "grammy";
 import { getEntryById, updateWeightEntry } from "../db/queries";
 import { parseWeight, formatWeight, formatDateTime } from "../utils/format";
+import { logger } from "../utils/logger";
 
 // Track users who are currently editing an entry
 const pendingEdits = new Map<number, number>(); // telegramUserId -> entryId
@@ -57,8 +58,23 @@ export async function handleEditMessage(ctx: Context): Promise<boolean> {
   pendingEdits.delete(userId);
 
   await ctx.reply(
-    `Aktualisiert: ${formatWeight(entry.weight_kg)} → ${formatWeight(weight)}`
+    `✏️ Aktualisiert: ${formatWeight(entry.weight_kg)} → ${formatWeight(weight)}`
   );
+
+  // Edit original bot reply to show updated weight
+  if (entry.bot_message_id && entry.chat_id) {
+    try {
+      await ctx.api.editMessageText(
+        entry.chat_id,
+        entry.bot_message_id,
+        `✏️ <s>${formatWeight(entry.weight_kg)}</s> → ${formatWeight(weight)}`,
+        { parse_mode: "HTML" }
+      );
+    } catch {
+      logger.warn(`Could not edit bot reply for entry ${entryId}`);
+    }
+  }
+
   return true;
 }
 

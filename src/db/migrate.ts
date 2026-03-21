@@ -52,11 +52,10 @@ interface Migration {
 }
 
 const migrations: Migration[] = [
-  // Future migrations go here, e.g.:
-  // {
-  //   name: "002_add_goal_weight",
-  //   up: `ALTER TABLE users ADD COLUMN IF NOT EXISTS goal_kg NUMERIC(5,2);`,
-  // },
+  {
+    name: "001_add_bot_message_id",
+    up: `ALTER TABLE weight_entries ADD COLUMN IF NOT EXISTS bot_message_id BIGINT;`,
+  },
 ];
 
 async function runVersionedMigrations(): Promise<void> {

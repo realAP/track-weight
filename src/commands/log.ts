@@ -1,5 +1,5 @@
 import { CommandContext, Context } from "grammy";
-import { upsertUser, addWeightEntry } from "../db/queries";
+import { upsertUser, addWeightEntry, setBotMessageId } from "../db/queries";
 import { parseWeight, parseDate, formatWeight, formatDate } from "../utils/format";
 
 export async function logCommand(ctx: CommandContext<Context>): Promise<void> {
@@ -32,10 +32,13 @@ export async function logCommand(ctx: CommandContext<Context>): Promise<void> {
   if (!chatId) return;
 
   await upsertUser(user.id, user.first_name);
-  await addWeightEntry(user.id, chatId, weight, recordedAt);
+  const entry = await addWeightEntry(user.id, chatId, weight, recordedAt);
 
   const dateStr = recordedAt ? ` (${formatDate(recordedAt)})` : "";
-  await ctx.reply(`${formatWeight(weight)} eingetragen${dateStr}`);
+  const reply = await ctx.reply(`✅ ${formatWeight(weight)} eingetragen${dateStr}`, {
+    reply_parameters: { message_id: ctx.message!.message_id },
+  });
+  await setBotMessageId(entry.id, reply.message_id);
 }
 
 export async function handlePlainNumber(ctx: Context): Promise<void> {
@@ -49,7 +52,10 @@ export async function handlePlainNumber(ctx: Context): Promise<void> {
   if (weight === null) return;
 
   await upsertUser(ctx.from.id, ctx.from.first_name);
-  await addWeightEntry(ctx.from.id, chatId, weight);
+  const entry = await addWeightEntry(ctx.from.id, chatId, weight);
 
-  await ctx.reply(`${formatWeight(weight)} eingetragen`);
+  const reply = await ctx.reply(`✅ ${formatWeight(weight)} eingetragen`, {
+    reply_parameters: { message_id: ctx.message!.message_id },
+  });
+  await setBotMessageId(entry.id, reply.message_id);
 }
