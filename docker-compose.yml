@@ -1,9 +1,9 @@
 services:
   bot:
     build: .
-    env_file: .env
     environment:
-      DATABASE_URL: postgresql://weighttracker:${DB_PASSWORD}@db:5432/weighttracker
+      BOT_TOKEN: '${BOT_TOKEN}'
+      DATABASE_URL: 'postgresql://${ENV_POSTGRES_USER}:${ENV_POSTGRES_PASSWORD}@db:5432/${ENV_POSTGRES_DATABASE}'
     volumes:
       - botlogs:/app/logs
     depends_on:
@@ -14,40 +14,49 @@ services:
   db:
     image: postgres:16-alpine
     environment:
-      POSTGRES_DB: weighttracker
-      POSTGRES_USER: weighttracker
-      POSTGRES_PASSWORD: ${DB_PASSWORD}
+      POSTGRES_DB: '${ENV_POSTGRES_DATABASE}'
+      POSTGRES_USER: '${ENV_POSTGRES_USER}'
+      POSTGRES_PASSWORD: '${ENV_POSTGRES_PASSWORD}'
     volumes:
       - pgdata:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U weighttracker"]
+      test:
+        - CMD-SHELL
+        - 'pg_isready -d ${ENV_POSTGRES_DATABASE} -U ${ENV_POSTGRES_USER} || exit 1'
       interval: 5s
       timeout: 5s
       retries: 5
     restart: unless-stopped
 
   backup:
-    image: devp1337/backup:latest
+    image: devp1337/backup:2.0.0
     hostname: ${BACKUP_HOSTNAME:-weight-backup}
     environment:
-      ENV_PROVISION_MODE: "postgres"
-      ENV_POSTGRES_USER: weighttracker
-      ENV_POSTGRES_PASSWORD: ${DB_PASSWORD}
-      ENV_POSTGRES_DATABASE: weighttracker
-      ENV_POSTGRES_HOST: db
-      ENV_RESTIC_REPOSITORY_NAME: ${BACKUP_RESTIC_REPO}
-      ENV_RESTIC_PASSWORD: ${BACKUP_RESTIC_PASSWORD}
-      ENV_TELEGRAM_TOKEN: ${BOT_TOKEN}
-      ENV_TELEGRAM_CHAT_ID: ${BACKUP_TELEGRAM_CHAT_ID}
-      ENV_TELEGRAM_COMMENT: "Weight Tracker DB Backup"
-      ENV_CRON: ${BACKUP_CRON:-0 2 * * *}
-      ENV_TARGET_DOMAIN: ${BACKUP_SFTP_HOST}
-      ENV_TARGET_DOMAIN_USER: ${BACKUP_SFTP_USER}
-      ENV_SSH_PRIVATE_KEY_BASE64: ${BACKUP_SSH_KEY_BASE64}
+      PROVISION_MODE: '${ENV_PROVISION_MODE}'
+      POSTGRES_USER: '${ENV_POSTGRES_USER}'
+      POSTGRES_PASSWORD: '${ENV_POSTGRES_PASSWORD}'
+      POSTGRES_DATABASE: '${ENV_POSTGRES_DATABASE}'
+      POSTGRES_HOST: db
+      RESTIC_REPOSITORY_NAME: '${ENV_RESTIC_REPOSITORY_NAME}'
+      RESTIC_PASSWORD: '${ENV_RESTIC_PASSWORD}'
+      TELEGRAM_TOKEN: '${ENV_TELEGRAM_TOKEN}'
+      TELEGRAM_CHAT_ID: '${ENV_TELEGRAM_CHAT_ID}'
+      TELEGRAM_COMMENT: "Weight Tracker DB Backup"
+      CRON: '${ENV_CRON}'
+      TARGET_DOMAIN: '${ENV_TARGET_DOMAIN}'
+      TARGET_DOMAIN_USER: '${ENV_TARGET_DOMAIN_USER}'
+      SSH_PRIVATE_KEY_BASE64: '${ENV_SSH_PRIVATE_KEY_BASE64}'
     depends_on:
       db:
         condition: service_healthy
     restart: unless-stopped
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - 'pg_isready -h db > /dev/null || exit 1'
+      interval: 30s
+      timeout: 20s
+      retries: 3
 
 volumes:
   pgdata:
