@@ -1,0 +1,25 @@
+# Local dev overlay – start with:
+#   docker compose -f docker-compose.yml -f docker-compose.dev.yml up -d
+#
+# Gives you:
+#   - Postgres on localhost:5433 (direct psql access)
+#   - Adminer on http://localhost:8080 (web UI for DB)
+#   - No backup service (not needed locally)
+
+services:
+  db:
+    ports:
+      - '5433:5432'
+
+  adminer:
+    image: adminer:4
+    ports:
+      - '8080:8080'
+    depends_on:
+      db:
+        condition: service_healthy
+    restart: unless-stopped
+
+  backup:
+    profiles:
+      - backup-only
