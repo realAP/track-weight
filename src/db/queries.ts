@@ -72,6 +72,35 @@ export async function getUserEntries(telegramUserId: number, chatId: number, lim
   return result.rows;
 }
 
+export async function getUserEntriesPaginated(
+  telegramUserId: number,
+  chatId: number,
+  limit: number,
+  offset: number
+): Promise<WeightEntry[]> {
+  const result = await pool.query(
+    `SELECT w.id, w.telegram_user_id, w.chat_id, w.weight_kg, w.recorded_at, u.display_name
+     FROM weight_entries w
+     JOIN users u ON u.telegram_id = w.telegram_user_id
+     WHERE w.telegram_user_id = $1 AND w.chat_id = $2
+     ORDER BY w.recorded_at DESC
+     LIMIT $3 OFFSET $4`,
+    [telegramUserId, chatId, limit, offset]
+  );
+  return result.rows;
+}
+
+export async function getUserEntryCount(
+  telegramUserId: number,
+  chatId: number
+): Promise<number> {
+  const result = await pool.query(
+    `SELECT COUNT(*)::int AS count FROM weight_entries WHERE telegram_user_id = $1 AND chat_id = $2`,
+    [telegramUserId, chatId]
+  );
+  return result.rows[0].count;
+}
+
 export async function getEntryById(id: number): Promise<WeightEntry | null> {
   const result = await pool.query(
     `SELECT w.id, w.telegram_user_id, w.chat_id, w.weight_kg, w.recorded_at, u.display_name

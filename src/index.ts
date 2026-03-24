@@ -12,8 +12,11 @@ import {
   handleDeleteCallback,
   handleConfirmDeleteCallback,
   handleCancelDeleteCallback,
+  handleDeletePageCallback,
 } from "./callbacks/delete";
 import { chartCallbackHandler } from "./callbacks/chart";
+import { historyCallbackHandler } from "./callbacks/history";
+import { statsCallbackHandler } from "./callbacks/stats";
 import { deleteCommand } from "./commands/delete";
 import { editCommand } from "./commands/edit";
 import { nachtragenCommand, handleBacklogCallback, handleBacklogMessage, cancelBacklog } from "./commands/nachtragen";
@@ -57,6 +60,13 @@ async function main(): Promise<void> {
   bot.callbackQuery(/^delete:\d+$/, handleDeleteCallback);
   bot.callbackQuery(/^confirm_delete:\d+$/, handleConfirmDeleteCallback);
   bot.callbackQuery(/^cancel_delete:\d+$/, handleCancelDeleteCallback);
+  bot.callbackQuery(/^delete_page:/, handleDeletePageCallback);
+
+  // History callbacks (scope toggle)
+  bot.callbackQuery(/^history:/, historyCallbackHandler);
+
+  // Stats callbacks (scope toggle)
+  bot.callbackQuery(/^stats:/, statsCallbackHandler);
 
   // Backlog callbacks (nachtragen date selection)
   bot.callbackQuery(/^backlog:/, handleBacklogCallback);

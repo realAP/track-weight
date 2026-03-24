@@ -1,7 +1,10 @@
 import { Context, InlineKeyboard } from "grammy";
-import { getEntryById, deleteWeightEntry } from "../db/queries";
+import { getEntryById, deleteWeightEntry, getUserEntriesPaginated, getUserEntryCount } from "../db/queries";
 import { formatWeight, formatDateTime } from "../utils/format";
 import { logger } from "../utils/logger";
+import { buildDeleteKeyboard } from "../commands/delete";
+
+const PAGE_SIZE = 5;
 
 export async function handleDeleteCallback(ctx: Context): Promise<void> {
   const data = ctx.callbackQuery?.data;
@@ -76,4 +79,41 @@ export async function handleConfirmDeleteCallback(ctx: Context): Promise<void> {
 export async function handleCancelDeleteCallback(ctx: Context): Promise<void> {
   await ctx.answerCallbackQuery({ text: "Abgebrochen." });
   await ctx.deleteMessage();
+}
+
+export async function handleDeletePageCallback(ctx: Context): Promise<void> {
+  const data = ctx.callbackQuery?.data;
+  const callerId = ctx.from?.id;
+  const chatId = ctx.chat?.id;
+  if (!data || !callerId || !chatId) return;
+
+  const parts = data.split(":");
+  if (parts.length !== 3) {
+    await ctx.answerCallbackQuery({ text: "Ungültige Aktion" });
+    return;
+  }
+
+  const ownerId = parseInt(parts[1]);
+  const page = parseInt(parts[2]);
+
+  if (callerId !== ownerId) {
+    await ctx.answerCallbackQuery({
+      text: "Nur wer /delete aufgerufen hat kann die Buttons nutzen.",
+      show_alert: true,
+    });
+    return;
+  }
+
+  const totalCount = await getUserEntryCount(ownerId, chatId);
+  const offset = page * PAGE_SIZE;
+  const entries = await getUserEntriesPaginated(ownerId, chatId, PAGE_SIZE, offset);
+
+  if (entries.length === 0) {
+    await ctx.answerCallbackQuery({ text: "Keine Einträge auf dieser Seite." });
+    return;
+  }
+
+  const keyboard = buildDeleteKeyboard(entries, page, totalCount, ownerId);
+  await ctx.editMessageText("Welchen Eintrag löschen?", { reply_markup: keyboard });
+  await ctx.answerCallbackQuery();
 }
