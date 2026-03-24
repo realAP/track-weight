@@ -80,8 +80,14 @@ async function main(): Promise<void> {
 
   // Text message handler (plain numbers + edit/backlog responses)
   bot.on("message:text", async (ctx) => {
+    const debugUserId = ctx.from?.id;
+    const debugText = ctx.message?.text?.trim();
+    logger.info(`TEXT_HANDLER | user=${debugUserId} | text="${debugText}"`);
+
     // Check if user is in edit mode
-    if (await handleEditMessage(ctx)) return;
+    const editHandled = await handleEditMessage(ctx);
+    logger.info(`TEXT_HANDLER | editHandled=${editHandled}`);
+    if (editHandled) return;
 
     // Check if user is entering backlog data
     if (await handleBacklogMessage(ctx)) return;
