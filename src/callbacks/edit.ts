@@ -1,7 +1,10 @@
 import { Context } from "grammy";
-import { getEntryById, updateWeightEntry } from "../db/queries";
+import { getEntryById, updateWeightEntry, getUserEntriesPaginated, getUserEntryCount } from "../db/queries";
 import { parseWeight, formatWeight, formatDateTime } from "../utils/format";
 import { logger } from "../utils/logger";
+import { buildEditKeyboard } from "../commands/edit";
+
+const PAGE_SIZE = 5;
 
 // Track users who are currently editing an entry
 const pendingEdits = new Map<number, number>(); // telegramUserId -> entryId
@@ -80,4 +83,41 @@ export async function handleEditMessage(ctx: Context): Promise<boolean> {
 
 export function cancelEdit(userId: number): boolean {
   return pendingEdits.delete(userId);
+}
+
+export async function handleEditPageCallback(ctx: Context): Promise<void> {
+  const data = ctx.callbackQuery?.data;
+  const callerId = ctx.from?.id;
+  const chatId = ctx.chat?.id;
+  if (!data || !callerId || !chatId) return;
+
+  const parts = data.split(":");
+  if (parts.length !== 3) {
+    await ctx.answerCallbackQuery({ text: "Ungültige Aktion" });
+    return;
+  }
+
+  const ownerId = parseInt(parts[1]);
+  const page = parseInt(parts[2]);
+
+  if (callerId !== ownerId) {
+    await ctx.answerCallbackQuery({
+      text: "Nur wer /edit aufgerufen hat kann die Buttons nutzen.",
+      show_alert: true,
+    });
+    return;
+  }
+
+  const totalCount = await getUserEntryCount(ownerId, chatId);
+  const offset = page * PAGE_SIZE;
+  const entries = await getUserEntriesPaginated(ownerId, chatId, PAGE_SIZE, offset);
+
+  if (entries.length === 0) {
+    await ctx.answerCallbackQuery({ text: "Keine Einträge auf dieser Seite." });
+    return;
+  }
+
+  const keyboard = buildEditKeyboard(entries, page, totalCount, ownerId);
+  await ctx.editMessageText("Welchen Eintrag bearbeiten?", { reply_markup: keyboard });
+  await ctx.answerCallbackQuery();
 }

@@ -7,7 +7,7 @@ import { historyCommand } from "./commands/history";
 import { statsCommand } from "./commands/stats";
 import { chartCommand } from "./commands/chart";
 import { reminderCommand, handleReminderCallback } from "./commands/reminder";
-import { handleEditCallback, handleEditMessage, cancelEdit } from "./callbacks/edit";
+import { handleEditCallback, handleEditMessage, cancelEdit, handleEditPageCallback } from "./callbacks/edit";
 import {
   handleDeleteCallback,
   handleConfirmDeleteCallback,
@@ -57,6 +57,7 @@ async function main(): Promise<void> {
 
   // Callback queries (inline buttons)
   bot.callbackQuery(/^edit:\d+$/, handleEditCallback);
+  bot.callbackQuery(/^edit_page:/, handleEditPageCallback);
   bot.callbackQuery(/^delete:\d+$/, handleDeleteCallback);
   bot.callbackQuery(/^confirm_delete:\d+$/, handleConfirmDeleteCallback);
   bot.callbackQuery(/^cancel_delete:\d+$/, handleCancelDeleteCallback);

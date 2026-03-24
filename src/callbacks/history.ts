@@ -11,13 +11,14 @@ export async function historyCallbackHandler(ctx: Context): Promise<void> {
   if (!data?.startsWith("history:")) return;
 
   const parts = data.split(":");
-  if (parts.length !== 3) {
+  if (parts.length !== 4) {
     await ctx.answerCallbackQuery({ text: "Ungültige Aktion" });
     return;
   }
 
-  const [, ownerIdStr, scopeStr] = parts;
+  const [, ownerIdStr, scopeStr, pageStr] = parts;
   const ownerId = parseInt(ownerIdStr);
+  const page = parseInt(pageStr);
   const callerId = ctx.from?.id;
   const chatId = ctx.chat?.id;
 
@@ -30,11 +31,15 @@ export async function historyCallbackHandler(ctx: Context): Promise<void> {
   }
 
   const scope = scopeStr as HistoryScope;
-  const entries = await loadHistoryEntries(scope, callerId, chatId);
+  const { entries, totalCount } = await loadHistoryEntries(scope, callerId, chatId, page);
 
   const text = buildHistoryText(entries, callerId, scope);
-  const keyboard = buildHistoryKeyboard(entries, scope, callerId);
+  const keyboard = buildHistoryKeyboard(entries, scope, callerId, page, totalCount);
 
-  await ctx.editMessageText(text, { reply_markup: keyboard });
+  try {
+    await ctx.editMessageText(text, { reply_markup: keyboard });
+  } catch {
+    // Message not modified (same page clicked)
+  }
   await ctx.answerCallbackQuery();
 }
