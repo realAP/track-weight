@@ -29,6 +29,7 @@ export async function handleEditCallback(ctx: Context): Promise<void> {
   }
 
   pendingEdits.set(userId, entryId);
+  logger.info(`User ${userId} started editing entry ${entryId}, pendingEdits size: ${pendingEdits.size}`);
 
   await ctx.answerCallbackQuery();
   await ctx.reply(
@@ -44,6 +45,8 @@ export async function handleEditMessage(ctx: Context): Promise<boolean> {
   const entryId = pendingEdits.get(userId);
   if (entryId === undefined) return false;
 
+  logger.info(`Edit mode active for user ${userId}, entry ${entryId}, input: "${text}"`);
+
   const weight = parseWeight(text);
   if (weight === null) {
     await ctx.reply("Ungültiges Gewicht. Bitte eine Zahl eingeben oder /cancel zum Abbrechen.");
@@ -57,25 +60,31 @@ export async function handleEditMessage(ctx: Context): Promise<boolean> {
     return true;
   }
 
-  await updateWeightEntry(entryId, weight);
-  pendingEdits.delete(userId);
+  try {
+    await updateWeightEntry(entryId, weight);
+    pendingEdits.delete(userId);
 
-  await ctx.reply(
-    `✏️ Aktualisiert: ${formatWeight(entry.weight_kg)} → ${formatWeight(weight)}`
-  );
+    await ctx.reply(
+      `✏️ Aktualisiert: ${formatWeight(entry.weight_kg)} → ${formatWeight(weight)}`
+    );
 
-  // Edit original bot reply to show updated weight
-  if (entry.bot_message_id && entry.chat_id) {
-    try {
-      await ctx.api.editMessageText(
-        entry.chat_id,
-        entry.bot_message_id,
-        `✏️ <s>${formatWeight(entry.weight_kg)}</s> → ${formatWeight(weight)}`,
-        { parse_mode: "HTML" }
-      );
-    } catch {
-      logger.warn(`Could not edit bot reply for entry ${entryId}`);
+    // Edit original bot reply to show updated weight
+    if (entry.bot_message_id && entry.chat_id) {
+      try {
+        await ctx.api.editMessageText(
+          entry.chat_id,
+          entry.bot_message_id,
+          `✏️ <s>${formatWeight(entry.weight_kg)}</s> → ${formatWeight(weight)}`,
+          { parse_mode: "HTML" }
+        );
+      } catch {
+        logger.warn(`Could not edit bot reply for entry ${entryId}`);
+      }
     }
+  } catch (err) {
+    logger.error(`Failed to update entry ${entryId}:`, err);
+    pendingEdits.delete(userId);
+    await ctx.reply("Fehler beim Aktualisieren. Bitte versuche es erneut.");
   }
 
   return true;
