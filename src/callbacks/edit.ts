@@ -43,7 +43,8 @@ export async function handleEditCallback(ctx: Context): Promise<void> {
 
   await ctx.answerCallbackQuery();
   await ctx.reply(
-    `Bearbeite: ${formatWeight(entry.weight_kg)} (${formatDateTime(entry.recorded_at)})\n\nNeues Gewicht eingeben:`
+    `Bearbeite: ${formatWeight(entry.weight_kg)} (${formatDateTime(entry.recorded_at)})\n\nNeues Gewicht eingeben:`,
+    { reply_markup: { force_reply: true, selective: true } }
   );
 }
 
@@ -61,7 +62,9 @@ export async function handleEditMessage(ctx: Context): Promise<boolean> {
 
   const weight = parseWeight(text);
   if (weight === null) {
-    await ctx.reply("Ungültiges Gewicht. Bitte eine Zahl eingeben oder /cancel zum Abbrechen.");
+    await ctx.reply("Ungültiges Gewicht. Bitte eine Zahl eingeben oder /cancel zum Abbrechen.", {
+      reply_markup: { force_reply: true, selective: true },
+    });
     return true;
   }
 

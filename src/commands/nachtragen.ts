@@ -62,7 +62,9 @@ export async function handleBacklogCallback(ctx: Context): Promise<void> {
     cleanExpiredBacklog();
     pendingCustomDate.set(userId, { expiresAt: Date.now() + PENDING_TTL_MS });
     await ctx.answerCallbackQuery();
-    await ctx.editMessageText("Datum eingeben (DD.MM oder DD.MM.YYYY):");
+    await ctx.reply("Datum eingeben (DD.MM oder DD.MM.YYYY):", {
+      reply_markup: { force_reply: true, selective: true },
+    });
     return;
   }
 
@@ -77,7 +79,9 @@ export async function handleBacklogCallback(ctx: Context): Promise<void> {
   await ctx.answerCallbackQuery();
   const dayName = dayNumberToName(date.getDay());
   const dateStr = date.toLocaleDateString("de-DE", { day: "2-digit", month: "2-digit", year: "numeric" });
-  await ctx.editMessageText(`Gewicht für ${dayName} ${dateStr} eingeben:`);
+  await ctx.reply(`Gewicht für ${dayName} ${dateStr} eingeben:`, {
+    reply_markup: { force_reply: true, selective: true },
+  });
 }
 
 export async function handleBacklogMessage(ctx: Context): Promise<boolean> {
@@ -91,14 +95,18 @@ export async function handleBacklogMessage(ctx: Context): Promise<boolean> {
   if (pendingCustomDate.has(userId)) {
     const date = parseDate(text);
     if (!date) {
-      await ctx.reply("Ungültiges Datum. Format: DD.MM oder DD.MM.YYYY\n/cancel zum Abbrechen.");
+      await ctx.reply("Ungültiges Datum. Format: DD.MM oder DD.MM.YYYY\n/cancel zum Abbrechen.", {
+      reply_markup: { force_reply: true, selective: true },
+    });
       return true;
     }
     pendingCustomDate.delete(userId);
     pendingBacklog.set(userId, { date, expiresAt: Date.now() + PENDING_TTL_MS });
     const dayName = dayNumberToName(date.getDay());
     const dateStr = date.toLocaleDateString("de-DE", { day: "2-digit", month: "2-digit", year: "numeric" });
-    await ctx.reply(`Gewicht für ${dayName} ${dateStr} eingeben:`);
+    await ctx.reply(`Gewicht für ${dayName} ${dateStr} eingeben:`, {
+      reply_markup: { force_reply: true, selective: true },
+    });
     return true;
   }
 
@@ -109,7 +117,9 @@ export async function handleBacklogMessage(ctx: Context): Promise<boolean> {
 
   const weight = parseWeight(text);
   if (weight === null) {
-    await ctx.reply("Ungültiges Gewicht. Bitte eine Zahl eingeben oder /cancel zum Abbrechen.");
+    await ctx.reply("Ungültiges Gewicht. Bitte eine Zahl eingeben oder /cancel zum Abbrechen.", {
+      reply_markup: { force_reply: true, selective: true },
+    });
     return true;
   }
 
