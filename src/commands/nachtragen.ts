@@ -63,7 +63,7 @@ export async function handleBacklogCallback(ctx: Context): Promise<void> {
     pendingCustomDate.set(userId, { expiresAt: Date.now() + PENDING_TTL_MS });
     await ctx.answerCallbackQuery();
     await ctx.reply("Datum eingeben (DD.MM oder DD.MM.YYYY):", {
-      reply_markup: { force_reply: true, selective: true },
+      reply_markup: { force_reply: true, selective: false },
     });
     return;
   }
@@ -80,7 +80,7 @@ export async function handleBacklogCallback(ctx: Context): Promise<void> {
   const dayName = dayNumberToName(date.getDay());
   const dateStr = date.toLocaleDateString("de-DE", { day: "2-digit", month: "2-digit", year: "numeric" });
   await ctx.reply(`Gewicht für ${dayName} ${dateStr} eingeben:`, {
-    reply_markup: { force_reply: true, selective: true },
+    reply_markup: { force_reply: true, selective: false },
   });
 }
 
@@ -96,7 +96,7 @@ export async function handleBacklogMessage(ctx: Context): Promise<boolean> {
     const date = parseDate(text);
     if (!date) {
       await ctx.reply("Ungültiges Datum. Format: DD.MM oder DD.MM.YYYY\n/cancel zum Abbrechen.", {
-      reply_markup: { force_reply: true, selective: true },
+      reply_markup: { force_reply: true, selective: false },
     });
       return true;
     }
@@ -105,7 +105,7 @@ export async function handleBacklogMessage(ctx: Context): Promise<boolean> {
     const dayName = dayNumberToName(date.getDay());
     const dateStr = date.toLocaleDateString("de-DE", { day: "2-digit", month: "2-digit", year: "numeric" });
     await ctx.reply(`Gewicht für ${dayName} ${dateStr} eingeben:`, {
-      reply_markup: { force_reply: true, selective: true },
+      reply_markup: { force_reply: true, selective: false },
     });
     return true;
   }
@@ -118,7 +118,7 @@ export async function handleBacklogMessage(ctx: Context): Promise<boolean> {
   const weight = parseWeight(text);
   if (weight === null) {
     await ctx.reply("Ungültiges Gewicht. Bitte eine Zahl eingeben oder /cancel zum Abbrechen.", {
-      reply_markup: { force_reply: true, selective: true },
+      reply_markup: { force_reply: true, selective: false },
     });
     return true;
   }
