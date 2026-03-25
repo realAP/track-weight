@@ -1,73 +1,15 @@
-import { CommandContext, Context, InlineKeyboard } from "grammy";
-import {
-  getUserEntries,
-  getRecentEntries,
-  WeightEntry,
-} from "../db/queries";
+import { CommandContext, Context } from "grammy";
+import { getUserEntries, WeightEntry } from "../db/queries";
 import { formatWeight, formatDateTime } from "../utils/format";
 
-export type HistoryScope = "me" | "all";
-
-export function buildHistoryText(entries: WeightEntry[], userId: number, scope: HistoryScope): string {
-  if (entries.length === 0) {
-    return "Noch keine Einträge vorhanden.";
-  }
-
-  const scopeLabel = scope === "me" ? "Deine Einträge" : "Alle Einträge";
-  let text = `${scopeLabel}:\n\n`;
+function buildHistoryText(entries: WeightEntry[]): string {
+  let text = "Deine Einträge:\n\n";
 
   for (const entry of entries) {
-    const isOwn = Number(entry.telegram_user_id) === userId;
-    const name = scope === "all" ? (isOwn ? "Du" : entry.display_name) : "";
-    const prefix = scope === "all" ? `${name} - ` : "";
-    text += `${prefix}${formatWeight(entry.weight_kg)} (${formatDateTime(entry.recorded_at)})`;
-    if (isOwn) {
-      text += ` [#${entry.id}]`;
-    }
-    text += "\n";
+    text += `${formatWeight(entry.weight_kg)} (${formatDateTime(entry.recorded_at)}) [#${entry.id}]\n`;
   }
 
   return text;
-}
-
-export function buildHistoryKeyboard(
-  entries: WeightEntry[],
-  scope: HistoryScope,
-  userId: number
-): InlineKeyboard {
-  const keyboard = new InlineKeyboard();
-
-  // Scope toggle row
-  const meLabel = scope === "me" ? "Ich ✓" : "Ich";
-  const allLabel = scope === "all" ? "Alle ✓" : "Alle";
-  keyboard.text(meLabel, `history:${userId}:me`);
-  keyboard.text(allLabel, `history:${userId}:all`);
-  keyboard.row();
-
-  // Edit/Delete buttons for own entries
-  const ownEntries = entries.filter((e) => Number(e.telegram_user_id) === userId);
-  for (const entry of ownEntries) {
-    keyboard
-      .text(
-        `✏️ ${formatWeight(entry.weight_kg)} ${formatDateTime(entry.recorded_at)}`,
-        `edit:${entry.id}`
-      )
-      .text("🗑", `delete:${entry.id}`)
-      .row();
-  }
-
-  return keyboard;
-}
-
-export async function loadHistoryEntries(
-  scope: HistoryScope,
-  userId: number,
-  chatId: number
-): Promise<WeightEntry[]> {
-  if (scope === "me") {
-    return getUserEntries(userId, chatId, 1000);
-  }
-  return getRecentEntries(chatId, 1000);
 }
 
 export async function historyCommand(ctx: CommandContext<Context>): Promise<void> {
@@ -75,16 +17,12 @@ export async function historyCommand(ctx: CommandContext<Context>): Promise<void
   const chatId = ctx.chat?.id;
   if (!userId || !chatId) return;
 
-  const scope: HistoryScope = "me";
-  const entries = await loadHistoryEntries(scope, userId, chatId);
+  const entries = await getUserEntries(userId, chatId, 1000);
 
   if (entries.length === 0) {
     await ctx.reply("Noch keine Einträge vorhanden.");
     return;
   }
 
-  const text = buildHistoryText(entries, userId, scope);
-  const keyboard = buildHistoryKeyboard(entries, scope, userId);
-
-  await ctx.reply(text, { reply_markup: keyboard });
+  await ctx.reply(buildHistoryText(entries));
 }

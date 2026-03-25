@@ -15,7 +15,6 @@ import {
   handleDeletePageCallback,
 } from "./callbacks/delete";
 import { chartCallbackHandler } from "./callbacks/chart";
-import { historyCallbackHandler } from "./callbacks/history";
 import { statsCallbackHandler } from "./callbacks/stats";
 import { deleteCommand } from "./commands/delete";
 import { editCommand } from "./commands/edit";
@@ -63,9 +62,6 @@ async function main(): Promise<void> {
   bot.callbackQuery(/^confirm_delete:\d+$/, handleConfirmDeleteCallback);
   bot.callbackQuery(/^cancel_delete:\d+$/, handleCancelDeleteCallback);
   bot.callbackQuery(/^delete_page:/, handleDeletePageCallback);
-
-  // History callbacks (scope toggle)
-  bot.callbackQuery(/^history:/, historyCallbackHandler);
 
   // Stats callbacks (scope toggle)
   bot.callbackQuery(/^stats:/, statsCallbackHandler);
