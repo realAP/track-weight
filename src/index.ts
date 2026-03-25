@@ -1,0 +1,116 @@
+import { Bot } from "grammy";
+import { config } from "./config";
+import { runMigrations } from "./db/migrate";
+import { startCommand, helpCommand } from "./commands/start";
+import { logCommand, handlePlainNumber } from "./commands/log";
+import { historyCommand } from "./commands/history";
+import { statsCommand } from "./commands/stats";
+import { chartCommand } from "./commands/chart";
+import { reminderCommand, handleReminderCallback } from "./commands/reminder";
+import { handleEditCallback, handleEditMessage, cancelEdit, handleEditPageCallback } from "./callbacks/edit";
+import {
+  handleDeleteCallback,
+  handleConfirmDeleteCallback,
+  handleCancelDeleteCallback,
+  handleDeletePageCallback,
+} from "./callbacks/delete";
+import { chartCallbackHandler } from "./callbacks/chart";
+import { historyCallbackHandler } from "./callbacks/history";
+import { statsCallbackHandler } from "./callbacks/stats";
+import { deleteCommand } from "./commands/delete";
+import { editCommand } from "./commands/edit";
+import { nachtragenCommand, handleBacklogCallback, handleBacklogMessage, cancelBacklog } from "./commands/nachtragen";
+import { startReminderService } from "./services/reminder.service";
+import { logger, cleanOldLogs } from "./utils/logger";
+import { loggingMiddleware } from "./middleware/logging";
+
+async function main(): Promise<void> {
+  logger.info("Starting weight tracker bot...");
+
+  cleanOldLogs();
+
+  await runMigrations();
+
+  const bot = new Bot(config.botToken);
+
+  // Log all interactions
+  bot.use(loggingMiddleware);
+
+  // Commands
+  bot.command("start", startCommand);
+  bot.command("help", helpCommand);
+  bot.command("log", logCommand);
+  bot.command("history", historyCommand);
+  bot.command("stats", statsCommand);
+  bot.command("chart", chartCommand);
+  bot.command("edit", editCommand);
+  bot.command("delete", deleteCommand);
+  bot.command("nachtragen", nachtragenCommand);
+  bot.command("reminder", reminderCommand);
+  bot.command("cancel", async (ctx) => {
+    if (!ctx.from) return;
+    const cancelled = cancelEdit(ctx.from.id) || cancelBacklog(ctx.from.id);
+    if (cancelled) {
+      await ctx.reply("Abgebrochen.");
+    }
+  });
+
+  // Callback queries (inline buttons)
+  bot.callbackQuery(/^edit:\d+$/, handleEditCallback);
+  bot.callbackQuery(/^edit_page:/, handleEditPageCallback);
+  bot.callbackQuery(/^delete:\d+$/, handleDeleteCallback);
+  bot.callbackQuery(/^confirm_delete:\d+$/, handleConfirmDeleteCallback);
+  bot.callbackQuery(/^cancel_delete:\d+$/, handleCancelDeleteCallback);
+  bot.callbackQuery(/^delete_page:/, handleDeletePageCallback);
+
+  // History callbacks (scope toggle)
+  bot.callbackQuery(/^history:/, historyCallbackHandler);
+
+  // Stats callbacks (scope toggle)
+  bot.callbackQuery(/^stats:/, statsCallbackHandler);
+
+  // Backlog callbacks (nachtragen date selection)
+  bot.callbackQuery(/^backlog:/, handleBacklogCallback);
+
+  // Chart callbacks (interactive chart buttons)
+  bot.callbackQuery(/^chart:/, chartCallbackHandler);
+
+  // Reminder callbacks (all prefixed with rd:, rh:, rm:)
+  bot.callbackQuery(/^r[dhm]:/, handleReminderCallback);
+
+  // Text message handler (plain numbers + edit/backlog responses)
+  bot.on("message:text", async (ctx) => {
+    const debugUserId = ctx.from?.id;
+    const debugText = ctx.message?.text?.trim();
+    logger.info(`TEXT_HANDLER | user=${debugUserId} | text="${debugText}"`);
+
+    // Check if user is in edit mode
+    const editHandled = await handleEditMessage(ctx);
+    logger.info(`TEXT_HANDLER | editHandled=${editHandled}`);
+    if (editHandled) return;
+
+    // Check if user is entering backlog data
+    if (await handleBacklogMessage(ctx)) return;
+
+    // Try to interpret as weight
+    await handlePlainNumber(ctx);
+  });
+
+  // Error handler
+  bot.catch((err) => {
+    logger.error("Bot error:", err);
+  });
+
+  // Start reminder cron
+  startReminderService(bot);
+
+  // Start bot
+  await bot.start({
+    onStart: () => logger.info("Bot is running!"),
+  });
+}
+
+main().catch((err) => {
+  logger.error("Fatal error:", err);
+  process.exit(1);
+});
