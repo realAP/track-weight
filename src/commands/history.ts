@@ -1,16 +1,12 @@
 import { CommandContext, Context, InlineKeyboard } from "grammy";
 import {
-  getUserEntriesPaginated,
-  getUserEntryCount,
-  getRecentEntriesPaginated,
-  getEntryCount,
+  getUserEntries,
+  getRecentEntries,
   WeightEntry,
 } from "../db/queries";
 import { formatWeight, formatDateTime } from "../utils/format";
 
 export type HistoryScope = "me" | "all";
-
-const PAGE_SIZE = 10;
 
 export function buildHistoryText(entries: WeightEntry[], userId: number, scope: HistoryScope): string {
   if (entries.length === 0) {
@@ -37,22 +33,20 @@ export function buildHistoryText(entries: WeightEntry[], userId: number, scope: 
 export function buildHistoryKeyboard(
   entries: WeightEntry[],
   scope: HistoryScope,
-  userId: number,
-  page: number,
-  totalCount: number
+  userId: number
 ): InlineKeyboard {
   const keyboard = new InlineKeyboard();
 
   // Scope toggle row
   const meLabel = scope === "me" ? "Ich ✓" : "Ich";
   const allLabel = scope === "all" ? "Alle ✓" : "Alle";
-  keyboard.text(meLabel, `history:${userId}:me:0`);
-  keyboard.text(allLabel, `history:${userId}:all:0`);
+  keyboard.text(meLabel, `history:${userId}:me`);
+  keyboard.text(allLabel, `history:${userId}:all`);
   keyboard.row();
 
-  // Edit/Delete buttons for own entries (max 5)
+  // Edit/Delete buttons for own entries
   const ownEntries = entries.filter((e) => Number(e.telegram_user_id) === userId);
-  for (const entry of ownEntries.slice(0, 5)) {
+  for (const entry of ownEntries) {
     keyboard
       .text(
         `✏️ ${formatWeight(entry.weight_kg)} ${formatDateTime(entry.recorded_at)}`,
@@ -62,40 +56,18 @@ export function buildHistoryKeyboard(
       .row();
   }
 
-  // Pagination row
-  const totalPages = Math.ceil(totalCount / PAGE_SIZE);
-  if (totalPages > 1) {
-    if (page > 0) {
-      keyboard.text("◀ Zurück", `history:${userId}:${scope}:${page - 1}`);
-    }
-    keyboard.text(`${page + 1}/${totalPages}`, `history:${userId}:${scope}:${page}`);
-    if (page < totalPages - 1) {
-      keyboard.text("Weiter ▶", `history:${userId}:${scope}:${page + 1}`);
-    }
-  }
-
   return keyboard;
 }
 
 export async function loadHistoryEntries(
   scope: HistoryScope,
   userId: number,
-  chatId: number,
-  page: number
-): Promise<{ entries: WeightEntry[]; totalCount: number }> {
-  const offset = page * PAGE_SIZE;
+  chatId: number
+): Promise<WeightEntry[]> {
   if (scope === "me") {
-    const [entries, totalCount] = await Promise.all([
-      getUserEntriesPaginated(userId, chatId, PAGE_SIZE, offset),
-      getUserEntryCount(userId, chatId),
-    ]);
-    return { entries, totalCount };
+    return getUserEntries(userId, chatId, 1000);
   }
-  const [entries, totalCount] = await Promise.all([
-    getRecentEntriesPaginated(chatId, PAGE_SIZE, offset),
-    getEntryCount(chatId),
-  ]);
-  return { entries, totalCount };
+  return getRecentEntries(chatId, 1000);
 }
 
 export async function historyCommand(ctx: CommandContext<Context>): Promise<void> {
@@ -104,8 +76,7 @@ export async function historyCommand(ctx: CommandContext<Context>): Promise<void
   if (!userId || !chatId) return;
 
   const scope: HistoryScope = "me";
-  const page = 0;
-  const { entries, totalCount } = await loadHistoryEntries(scope, userId, chatId, page);
+  const entries = await loadHistoryEntries(scope, userId, chatId);
 
   if (entries.length === 0) {
     await ctx.reply("Noch keine Einträge vorhanden.");
@@ -113,7 +84,7 @@ export async function historyCommand(ctx: CommandContext<Context>): Promise<void
   }
 
   const text = buildHistoryText(entries, userId, scope);
-  const keyboard = buildHistoryKeyboard(entries, scope, userId, page, totalCount);
+  const keyboard = buildHistoryKeyboard(entries, scope, userId);
 
   await ctx.reply(text, { reply_markup: keyboard });
 }
