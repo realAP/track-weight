@@ -68,8 +68,8 @@ async function sendReminder(bot: Bot<Context>, chatId: number, days: number[]): 
 function findPreviousReminderDate(now: Date, days: number[]): Date {
   const currentDay = now.getDay();
 
-  // Find how many days ago the previous reminder was
-  for (let daysBack = 1; daysBack <= 7; daysBack++) {
+  // Find how many days ago the previous reminder was (skip today, look 1-6 days back)
+  for (let daysBack = 1; daysBack < 7; daysBack++) {
     const checkDay = (currentDay - daysBack + 7) % 7;
     if (days.includes(checkDay)) {
       const prev = new Date(now);

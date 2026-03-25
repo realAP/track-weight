@@ -44,7 +44,13 @@ export async function chartCallbackHandler(ctx: Context): Promise<void> {
     return;
   }
 
-  const imageBuffer = await generateWeightChart(entries, mode);
+  let imageBuffer: Buffer;
+  try {
+    imageBuffer = await generateWeightChart(entries, mode);
+  } catch {
+    await ctx.answerCallbackQuery({ text: "Fehler bei der Chart-Erstellung.", show_alert: true });
+    return;
+  }
   const keyboard = buildChartKeyboard(scope, mode, period, ownerId);
 
   const scopeLabel = scope === "me" ? "Dein" : "Gruppen";
