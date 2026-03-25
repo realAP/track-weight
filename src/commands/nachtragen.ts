@@ -2,11 +2,23 @@ import { CommandContext, Context, InlineKeyboard } from "grammy";
 import { upsertUser, addWeightEntry, setBotMessageId } from "../db/queries";
 import { parseWeight, parseDate, formatWeight, formatDate, dayNumberToName } from "../utils/format";
 
+const PENDING_TTL_MS = 5 * 60 * 1000;
+
 // Track users waiting to enter weight for a specific date
-const pendingBacklog = new Map<number, Date>(); // telegramUserId -> date
+const pendingBacklog = new Map<number, { date: Date; expiresAt: number }>(); // telegramUserId -> date + TTL
 
 // Track users waiting to enter a custom date
-const pendingCustomDate = new Map<number, true>(); // telegramUserId -> waiting
+const pendingCustomDate = new Map<number, { expiresAt: number }>(); // telegramUserId -> TTL
+
+function cleanExpiredBacklog(): void {
+  const now = Date.now();
+  for (const [key, val] of pendingBacklog) {
+    if (now > val.expiresAt) pendingBacklog.delete(key);
+  }
+  for (const [key, val] of pendingCustomDate) {
+    if (now > val.expiresAt) pendingCustomDate.delete(key);
+  }
+}
 
 export async function nachtragenCommand(ctx: CommandContext<Context>): Promise<void> {
   const userId = ctx.from?.id;
@@ -47,7 +59,8 @@ export async function handleBacklogCallback(ctx: Context): Promise<void> {
   const value = data.replace("backlog:", "");
 
   if (value === "custom") {
-    pendingCustomDate.set(userId, true);
+    cleanExpiredBacklog();
+    pendingCustomDate.set(userId, { expiresAt: Date.now() + PENDING_TTL_MS });
     await ctx.answerCallbackQuery();
     await ctx.editMessageText("Datum eingeben (DD.MM oder DD.MM.YYYY):");
     return;
@@ -59,7 +72,8 @@ export async function handleBacklogCallback(ctx: Context): Promise<void> {
     return;
   }
 
-  pendingBacklog.set(userId, date);
+  cleanExpiredBacklog();
+  pendingBacklog.set(userId, { date, expiresAt: Date.now() + PENDING_TTL_MS });
   await ctx.answerCallbackQuery();
   const dayName = dayNumberToName(date.getDay());
   const dateStr = date.toLocaleDateString("de-DE", { day: "2-digit", month: "2-digit", year: "numeric" });
@@ -71,6 +85,8 @@ export async function handleBacklogMessage(ctx: Context): Promise<boolean> {
   const text = ctx.message?.text?.trim();
   if (!userId || !text) return false;
 
+  cleanExpiredBacklog();
+
   // Check if user is entering a custom date
   if (pendingCustomDate.has(userId)) {
     const date = parseDate(text);
@@ -79,7 +95,7 @@ export async function handleBacklogMessage(ctx: Context): Promise<boolean> {
       return true;
     }
     pendingCustomDate.delete(userId);
-    pendingBacklog.set(userId, date);
+    pendingBacklog.set(userId, { date, expiresAt: Date.now() + PENDING_TTL_MS });
     const dayName = dayNumberToName(date.getDay());
     const dateStr = date.toLocaleDateString("de-DE", { day: "2-digit", month: "2-digit", year: "numeric" });
     await ctx.reply(`Gewicht für ${dayName} ${dateStr} eingeben:`);
@@ -87,8 +103,9 @@ export async function handleBacklogMessage(ctx: Context): Promise<boolean> {
   }
 
   // Check if user is entering weight for a backlog date
-  const date = pendingBacklog.get(userId);
-  if (date === undefined) return false;
+  const pending = pendingBacklog.get(userId);
+  if (pending === undefined) return false;
+  const date = pending.date;
 
   const weight = parseWeight(text);
   if (weight === null) {

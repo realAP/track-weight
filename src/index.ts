@@ -49,8 +49,9 @@ async function main(): Promise<void> {
   bot.command("reminder", reminderCommand);
   bot.command("cancel", async (ctx) => {
     if (!ctx.from) return;
-    const cancelled = cancelEdit(ctx.from.id) || cancelBacklog(ctx.from.id);
-    if (cancelled) {
+    const editCancelled = cancelEdit(ctx.from.id);
+    const backlogCancelled = cancelBacklog(ctx.from.id);
+    if (editCancelled || backlogCancelled) {
       await ctx.reply("Abgebrochen.");
     }
   });

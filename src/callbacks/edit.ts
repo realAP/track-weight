@@ -6,8 +6,17 @@ import { buildEditKeyboard } from "../commands/edit";
 
 const PAGE_SIZE = 5;
 
-// Track users who are currently editing an entry
-const pendingEdits = new Map<number, number>(); // telegramUserId -> entryId
+// Track users who are currently editing an entry (auto-expires after 5 minutes)
+const pendingEdits = new Map<number, { entryId: number; expiresAt: number }>(); // telegramUserId -> edit state
+
+const PENDING_TTL_MS = 5 * 60 * 1000;
+
+function cleanExpiredEdits(): void {
+  const now = Date.now();
+  for (const [key, val] of pendingEdits) {
+    if (now > val.expiresAt) pendingEdits.delete(key);
+  }
+}
 
 export async function handleEditCallback(ctx: Context): Promise<void> {
   const data = ctx.callbackQuery?.data;
@@ -28,7 +37,8 @@ export async function handleEditCallback(ctx: Context): Promise<void> {
     return;
   }
 
-  pendingEdits.set(userId, entryId);
+  cleanExpiredEdits();
+  pendingEdits.set(userId, { entryId, expiresAt: Date.now() + PENDING_TTL_MS });
   logger.info(`User ${userId} started editing entry ${entryId}, pendingEdits size: ${pendingEdits.size}`);
 
   await ctx.answerCallbackQuery();
@@ -42,8 +52,10 @@ export async function handleEditMessage(ctx: Context): Promise<boolean> {
   const text = ctx.message?.text?.trim();
   if (!userId || !text) return false;
 
-  const entryId = pendingEdits.get(userId);
-  if (entryId === undefined) return false;
+  cleanExpiredEdits();
+  const pending = pendingEdits.get(userId);
+  if (pending === undefined) return false;
+  const entryId = pending.entryId;
 
   logger.info(`Edit mode active for user ${userId}, entry ${entryId}, input: "${text}"`);
 
