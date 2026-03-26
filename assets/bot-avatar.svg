@@ -1,0 +1,50 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <defs>
+    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#6C63FF"/>
+      <stop offset="100%" style="stop-color:#3F37C9"/>
+    </linearGradient>
+    <linearGradient id="arrow" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#00E676"/>
+      <stop offset="100%" style="stop-color:#00C853"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Background circle -->
+  <circle cx="256" cy="256" r="256" fill="url(#bg)"/>
+
+  <!-- Scale base plate -->
+  <rect x="126" y="340" width="260" height="24" rx="12" fill="white" opacity="0.95"/>
+
+  <!-- Scale body -->
+  <rect x="156" y="230" width="200" height="120" rx="20" fill="white" opacity="0.95"/>
+
+  <!-- Scale display -->
+  <rect x="186" y="255" width="140" height="60" rx="10" fill="#2D2B55"/>
+
+  <!-- Weight number in display -->
+  <text x="256" y="298" text-anchor="middle" font-family="Arial, sans-serif" font-weight="bold" font-size="32" fill="#00E676">-2.3</text>
+
+  <!-- Scale foot left -->
+  <ellipse cx="186" cy="368" rx="20" ry="6" fill="white" opacity="0.7"/>
+  <!-- Scale foot right -->
+  <ellipse cx="326" cy="368" rx="20" ry="6" fill="white" opacity="0.7"/>
+
+  <!-- Trend line going down (weight loss) -->
+  <polyline points="100,175 170,160 230,145 280,155 330,125 390,95"
+            fill="none" stroke="url(#arrow)" stroke-width="8" stroke-linecap="round" stroke-linejoin="round"/>
+
+  <!-- Trend arrow head -->
+  <polygon points="390,95 370,85 378,108" fill="#00E676"/>
+
+  <!-- Small dots on trend line -->
+  <circle cx="100" cy="175" r="6" fill="white" opacity="0.9"/>
+  <circle cx="170" cy="160" r="6" fill="white" opacity="0.9"/>
+  <circle cx="230" cy="145" r="6" fill="white" opacity="0.9"/>
+  <circle cx="280" cy="155" r="6" fill="white" opacity="0.9"/>
+  <circle cx="330" cy="125" r="6" fill="white" opacity="0.9"/>
+  <circle cx="390" cy="95" r="6" fill="#00E676"/>
+
+  <!-- Subtle kg label -->
+  <text x="256" y="420" text-anchor="middle" font-family="Arial, sans-serif" font-weight="bold" font-size="28" fill="white" opacity="0.9">TRACK</text>
+</svg>
