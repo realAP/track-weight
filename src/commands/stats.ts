@@ -10,9 +10,15 @@ function calcTrend(weights: number[]): string {
   return formatChange(change);
 }
 
-function formatChange(change: number): string {
+function formatChange(change: number, baseline?: number): string {
   const sign = change > 0 ? "+" : "";
-  return `${sign}${change.toFixed(1)} kg`;
+  let result = `${sign}${change.toFixed(1)} kg`;
+  if (baseline) {
+    const pct = (change / baseline) * 100;
+    const pctSign = pct > 0 ? "+" : "";
+    result += ` (${pctSign}${pct.toFixed(1)}%)`;
+  }
+  return result;
 }
 
 export function buildStatsKeyboard(scope: StatsScope, userId: number): InlineKeyboard {
@@ -57,7 +63,7 @@ export function buildStatsText(allEntries: WeightEntry[], scope: StatsScope, use
     `Aktuell: ${formatWeight(latest)}`,
     `Durchschnitt: ${formatWeight(avg)}`,
     `Min: ${formatWeight(min)} / Max: ${formatWeight(max)}`,
-    `Veränderung gesamt: ${formatChange(totalChange)}`,
+    `Veränderung gesamt: ${formatChange(totalChange, first)}`,
     "",
     `Trend 7 Tage: ${trend7d}`,
     `Trend 30 Tage: ${trend30d}`,
@@ -76,8 +82,9 @@ export function buildStatsText(allEntries: WeightEntry[], scope: StatsScope, use
       lines.push("\nPro Person:");
       for (const [name, uWeights] of userMap) {
         const uLatest = uWeights[uWeights.length - 1];
-        const uChange = uLatest - uWeights[0];
-        lines.push(`  ${name}: ${formatWeight(uLatest)} (${formatChange(uChange)})`);
+        const uFirst = uWeights[0];
+        const uChange = uLatest - uFirst;
+        lines.push(`  ${name}: ${formatWeight(uLatest)} (${formatChange(uChange, uFirst)})`);
       }
     }
   }
