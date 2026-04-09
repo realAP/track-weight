@@ -2,6 +2,9 @@ import { ChartJSNodeCanvas } from "chartjs-node-canvas";
 import { ChartConfiguration } from "chart.js";
 import { WeightEntry } from "../db/queries";
 import { formatDate } from "../utils/format";
+import { linearRegression } from "../utils/math";
+
+const MS_PER_DAY = 1000 * 60 * 60 * 24;
 
 const chartCanvas = new ChartJSNodeCanvas({
   width: 800,
@@ -41,24 +44,53 @@ async function renderAbsoluteChart(
   colors: string[]
 ): Promise<Buffer> {
   let colorIdx = 0;
-  const datasets = Array.from(userEntries.entries()).map(([name, data]) => {
+  const datasets: any[] = [];
+  const trendDatasets: any[] = [];
+
+  for (const [name, data] of userEntries.entries()) {
     const color = colors[colorIdx % colors.length];
     colorIdx++;
-    return {
+    const points = data.map((d) => ({ x: d.x.getTime(), y: d.y }));
+
+    datasets.push({
       label: name,
-      data: data.map((d) => ({ x: d.x.getTime(), y: d.y })),
+      data: points,
       borderColor: color,
       backgroundColor: color + "20",
       fill: false,
       tension: 0.3,
       pointRadius: 4,
       pointHoverRadius: 6,
-    };
-  });
+    });
+
+    if (data.length >= 2) {
+      const reg = linearRegression(points);
+      if (reg) {
+        const slopePerDay = reg.slope * MS_PER_DAY;
+        const xStart = points[0].x;
+        const xEnd = points[points.length - 1].x;
+        trendDatasets.push({
+          label: `${name} Trend (${slopePerDay >= 0 ? "+" : ""}${slopePerDay.toFixed(3)} kg/Tag)`,
+          data: [
+            { x: xStart, y: reg.slope * xStart + reg.intercept },
+            { x: xEnd, y: reg.slope * xEnd + reg.intercept },
+          ],
+          borderColor: color,
+          backgroundColor: "transparent",
+          borderDash: [10, 5],
+          borderWidth: 2,
+          fill: false,
+          tension: 0,
+          pointRadius: 0,
+          pointHoverRadius: 0,
+        });
+      }
+    }
+  }
 
   const configuration: ChartConfiguration = {
     type: "line",
-    data: { datasets: datasets as any },
+    data: { datasets: [...datasets, ...trendDatasets] as any },
     options: {
       responsive: false,
       plugins: {
@@ -67,7 +99,7 @@ async function renderAbsoluteChart(
           text: "Gewichtsverlauf",
           font: { size: 18 },
         },
-        legend: { display: userEntries.size > 1 },
+        legend: { display: userEntries.size > 1 || trendDatasets.length > 0 },
       },
       scales: {
         x: {
@@ -98,6 +130,7 @@ async function renderRelativeChart(
   let colorIdx = 0;
   const datasetsKg: any[] = [];
   const datasetsPct: any[] = [];
+  const datasetsTrend: any[] = [];
 
   for (const [name, data] of userEntries.entries()) {
     if (data.length === 0) continue;
@@ -105,9 +138,14 @@ async function renderRelativeChart(
     const color = colors[colorIdx % colors.length];
     colorIdx++;
 
+    const deltaKgPoints = data.map((d) => ({
+      x: d.x.getTime(),
+      y: +(d.y - baseline).toFixed(2),
+    }));
+
     datasetsKg.push({
       label: `${name} (kg)`,
-      data: data.map((d) => ({ x: d.x.getTime(), y: +(d.y - baseline).toFixed(2) })),
+      data: deltaKgPoints,
       borderColor: color,
       backgroundColor: color + "20",
       fill: false,
@@ -131,11 +169,36 @@ async function renderRelativeChart(
       pointRadius: 0,
       yAxisID: "yPct",
     });
+
+    if (data.length >= 2) {
+      const reg = linearRegression(deltaKgPoints);
+      if (reg) {
+        const slopePerDay = reg.slope * MS_PER_DAY;
+        const xStart = deltaKgPoints[0].x;
+        const xEnd = deltaKgPoints[deltaKgPoints.length - 1].x;
+        datasetsTrend.push({
+          label: `${name} Trend (${slopePerDay >= 0 ? "+" : ""}${slopePerDay.toFixed(3)} kg/Tag)`,
+          data: [
+            { x: xStart, y: reg.slope * xStart + reg.intercept },
+            { x: xEnd, y: reg.slope * xEnd + reg.intercept },
+          ],
+          borderColor: color,
+          backgroundColor: "transparent",
+          borderDash: [10, 5],
+          borderWidth: 2,
+          fill: false,
+          tension: 0,
+          pointRadius: 0,
+          pointHoverRadius: 0,
+          yAxisID: "yKg",
+        });
+      }
+    }
   }
 
   const configuration: ChartConfiguration = {
     type: "line",
-    data: { datasets: [...datasetsKg, ...datasetsPct] as any },
+    data: { datasets: [...datasetsKg, ...datasetsTrend, ...datasetsPct] as any },
     options: {
       responsive: false,
       plugins: {
