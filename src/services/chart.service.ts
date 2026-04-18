@@ -75,7 +75,7 @@ async function renderAbsoluteChart(
             { x: xStart, y: reg.slope * xStart + reg.intercept },
             { x: xEnd, y: reg.slope * xEnd + reg.intercept },
           ],
-          borderColor: color,
+          borderColor: "#FF9800",
           backgroundColor: "transparent",
           borderDash: [10, 5],
           borderWidth: 2,
@@ -128,7 +128,6 @@ async function renderRelativeChart(
   colors: string[]
 ): Promise<Buffer> {
   let colorIdx = 0;
-  const datasetsKg: any[] = [];
   const datasetsPct: any[] = [];
   const datasetsTrend: any[] = [];
 
@@ -138,51 +137,35 @@ async function renderRelativeChart(
     const color = colors[colorIdx % colors.length];
     colorIdx++;
 
-    const deltaKgPoints = data.map((d) => ({
+    const deltaPctPoints = data.map((d) => ({
       x: d.x.getTime(),
-      y: +(d.y - baseline).toFixed(2),
+      y: +(((d.y - baseline) / baseline) * 100).toFixed(2),
     }));
 
-    datasetsKg.push({
-      label: `${name} (kg)`,
-      data: deltaKgPoints,
+    datasetsPct.push({
+      label: name,
+      data: deltaPctPoints,
       borderColor: color,
       backgroundColor: color + "20",
       fill: false,
       tension: 0.3,
       pointRadius: 4,
       pointHoverRadius: 6,
-      yAxisID: "yKg",
-    });
-
-    datasetsPct.push({
-      label: `${name} (%)`,
-      data: data.map((d) => ({
-        x: d.x.getTime(),
-        y: +(((d.y - baseline) / baseline) * 100).toFixed(2),
-      })),
-      borderColor: color,
-      backgroundColor: "transparent",
-      borderDash: [5, 5],
-      fill: false,
-      tension: 0.3,
-      pointRadius: 0,
-      yAxisID: "yPct",
     });
 
     if (data.length >= 2) {
-      const reg = linearRegression(deltaKgPoints);
+      const reg = linearRegression(deltaPctPoints);
       if (reg) {
         const slopePerDay = reg.slope * MS_PER_DAY;
-        const xStart = deltaKgPoints[0].x;
-        const xEnd = deltaKgPoints[deltaKgPoints.length - 1].x;
+        const xStart = deltaPctPoints[0].x;
+        const xEnd = deltaPctPoints[deltaPctPoints.length - 1].x;
         datasetsTrend.push({
-          label: `${name} Trend (${slopePerDay >= 0 ? "+" : ""}${slopePerDay.toFixed(3)} kg/Tag)`,
+          label: `${name} Trend (${slopePerDay >= 0 ? "+" : ""}${slopePerDay.toFixed(3)} %/Tag)`,
           data: [
             { x: xStart, y: reg.slope * xStart + reg.intercept },
             { x: xEnd, y: reg.slope * xEnd + reg.intercept },
           ],
-          borderColor: color,
+          borderColor: "#FF9800",
           backgroundColor: "transparent",
           borderDash: [10, 5],
           borderWidth: 2,
@@ -190,7 +173,6 @@ async function renderRelativeChart(
           tension: 0,
           pointRadius: 0,
           pointHoverRadius: 0,
-          yAxisID: "yKg",
         });
       }
     }
@@ -198,7 +180,7 @@ async function renderRelativeChart(
 
   const configuration: ChartConfiguration = {
     type: "line",
-    data: { datasets: [...datasetsKg, ...datasetsTrend, ...datasetsPct] as any },
+    data: { datasets: [...datasetsPct, ...datasetsTrend] as any },
     options: {
       responsive: false,
       plugins: {
@@ -218,22 +200,11 @@ async function renderRelativeChart(
             maxTicksLimit: 10,
           },
         },
-        yKg: {
-          type: "linear",
-          position: "left",
-          title: { display: true, text: "Δ kg" },
-          ticks: {
-            callback: (value: any) => `${value > 0 ? "+" : ""}${value} kg`,
-          },
-        },
-        yPct: {
-          type: "linear",
-          position: "right",
+        y: {
           title: { display: true, text: "Δ %" },
           ticks: {
             callback: (value: any) => `${value > 0 ? "+" : ""}${value}%`,
           },
-          grid: { drawOnChartArea: false },
         },
       },
     },
