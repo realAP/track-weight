@@ -27,9 +27,11 @@ export function buildChartKeyboard(
 
   // Row 2: Mode
   const absLabel = mode === "absolute" ? "Absolut ✓" : "Absolut";
-  const relLabel = mode === "relative" ? "Relativ ✓" : "Relativ";
+  const relKgLabel = mode === "relative_kg" ? "Relativ kg ✓" : "Relativ kg";
+  const relPctLabel = mode === "relative_pct" ? "Relativ % ✓" : "Relativ %";
   kb.text(absLabel, `chart:${userId}:${scope}:absolute:${period}`);
-  kb.text(relLabel, `chart:${userId}:${scope}:relative:${period}`);
+  kb.text(relKgLabel, `chart:${userId}:${scope}:relative_kg:${period}`);
+  kb.text(relPctLabel, `chart:${userId}:${scope}:relative_pct:${period}`);
   kb.row();
 
   // Row 3: Period

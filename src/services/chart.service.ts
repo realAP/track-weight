@@ -12,7 +12,7 @@ const chartCanvas = new ChartJSNodeCanvas({
   backgroundColour: "white",
 });
 
-export type ChartMode = "absolute" | "relative";
+export type ChartMode = "absolute" | "relative_kg" | "relative_pct";
 
 export async function generateWeightChart(
   entries: WeightEntry[],
@@ -30,13 +30,11 @@ export async function generateWeightChart(
   }
 
   const colors = ["#4CAF50", "#2196F3", "#FF9800", "#E91E63", "#9C27B0"];
-  let colorIdx = 0;
 
   if (mode === "absolute") {
     return renderAbsoluteChart(userEntries, colors);
-  } else {
-    return renderRelativeChart(userEntries, colors);
   }
+  return renderRelativeChart(userEntries, colors, mode === "relative_pct" ? "pct" : "kg");
 }
 
 async function renderAbsoluteChart(
@@ -125,11 +123,17 @@ async function renderAbsoluteChart(
 
 async function renderRelativeChart(
   userEntries: Map<string, { x: Date; y: number }[]>,
-  colors: string[]
+  colors: string[],
+  unit: "kg" | "pct"
 ): Promise<Buffer> {
   let colorIdx = 0;
-  const datasetsPct: any[] = [];
+  const datasets: any[] = [];
   const datasetsTrend: any[] = [];
+
+  const unitLabel = unit === "kg" ? "kg" : "%";
+  const axisLabel = unit === "kg" ? "Δ kg" : "Δ %";
+  const tickFormat = (value: number) =>
+    unit === "kg" ? `${value > 0 ? "+" : ""}${value} kg` : `${value > 0 ? "+" : ""}${value}%`;
 
   for (const [name, data] of userEntries.entries()) {
     if (data.length === 0) continue;
@@ -137,14 +141,17 @@ async function renderRelativeChart(
     const color = colors[colorIdx % colors.length];
     colorIdx++;
 
-    const deltaPctPoints = data.map((d) => ({
+    const points = data.map((d) => ({
       x: d.x.getTime(),
-      y: +(((d.y - baseline) / baseline) * 100).toFixed(2),
+      y:
+        unit === "kg"
+          ? +(d.y - baseline).toFixed(2)
+          : +(((d.y - baseline) / baseline) * 100).toFixed(2),
     }));
 
-    datasetsPct.push({
+    datasets.push({
       label: name,
-      data: deltaPctPoints,
+      data: points,
       borderColor: color,
       backgroundColor: color + "20",
       fill: false,
@@ -154,13 +161,13 @@ async function renderRelativeChart(
     });
 
     if (data.length >= 2) {
-      const reg = linearRegression(deltaPctPoints);
+      const reg = linearRegression(points);
       if (reg) {
         const slopePerDay = reg.slope * MS_PER_DAY;
-        const xStart = deltaPctPoints[0].x;
-        const xEnd = deltaPctPoints[deltaPctPoints.length - 1].x;
+        const xStart = points[0].x;
+        const xEnd = points[points.length - 1].x;
         datasetsTrend.push({
-          label: `${name} Trend (${slopePerDay >= 0 ? "+" : ""}${slopePerDay.toFixed(3)} %/Tag)`,
+          label: `${name} Trend (${slopePerDay >= 0 ? "+" : ""}${slopePerDay.toFixed(3)} ${unitLabel}/Tag)`,
           data: [
             { x: xStart, y: reg.slope * xStart + reg.intercept },
             { x: xEnd, y: reg.slope * xEnd + reg.intercept },
@@ -180,7 +187,7 @@ async function renderRelativeChart(
 
   const configuration: ChartConfiguration = {
     type: "line",
-    data: { datasets: [...datasetsPct, ...datasetsTrend] as any },
+    data: { datasets: [...datasets, ...datasetsTrend] as any },
     options: {
       responsive: false,
       plugins: {
@@ -201,9 +208,9 @@ async function renderRelativeChart(
           },
         },
         y: {
-          title: { display: true, text: "Δ %" },
+          title: { display: true, text: axisLabel },
           ticks: {
-            callback: (value: any) => `${value > 0 ? "+" : ""}${value}%`,
+            callback: (value: any) => tickFormat(value),
           },
         },
       },

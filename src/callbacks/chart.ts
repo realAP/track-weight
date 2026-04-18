@@ -54,7 +54,8 @@ export async function chartCallbackHandler(ctx: Context): Promise<void> {
   const keyboard = buildChartKeyboard(scope, mode, period, ownerId);
 
   const scopeLabel = scope === "me" ? "Dein" : "Gruppen";
-  const modeLabel = mode === "relative" ? ", relativ" : "";
+  const modeLabel =
+    mode === "relative_kg" ? ", relativ kg" : mode === "relative_pct" ? ", relativ %" : "";
   const caption = `${scopeLabel}-Gewichtsverlauf (${period}${modeLabel})`;
 
   const media = InputMediaBuilder.photo(new InputFile(imageBuffer, "chart.png"), {
