@@ -30,16 +30,23 @@ export async function generateWeightChart(
   }
 
   const colors = ["#4CAF50", "#2196F3", "#FF9800", "#E91E63", "#9C27B0"];
+  const trendColors = ["#1B5E20", "#0D47A1", "#E65100", "#880E4F", "#4A148C"];
 
   if (mode === "absolute") {
-    return renderAbsoluteChart(userEntries, colors);
+    return renderAbsoluteChart(userEntries, colors, trendColors);
   }
-  return renderRelativeChart(userEntries, colors, mode === "relative_pct" ? "pct" : "kg");
+  return renderRelativeChart(
+    userEntries,
+    colors,
+    trendColors,
+    mode === "relative_pct" ? "pct" : "kg"
+  );
 }
 
 async function renderAbsoluteChart(
   userEntries: Map<string, { x: Date; y: number }[]>,
-  colors: string[]
+  colors: string[],
+  trendColors: string[]
 ): Promise<Buffer> {
   let colorIdx = 0;
   const datasets: any[] = [];
@@ -47,6 +54,7 @@ async function renderAbsoluteChart(
 
   for (const [name, data] of userEntries.entries()) {
     const color = colors[colorIdx % colors.length];
+    const trendColor = trendColors[colorIdx % trendColors.length];
     colorIdx++;
     const points = data.map((d) => ({ x: d.x.getTime(), y: d.y }));
 
@@ -73,7 +81,7 @@ async function renderAbsoluteChart(
             { x: xStart, y: reg.slope * xStart + reg.intercept },
             { x: xEnd, y: reg.slope * xEnd + reg.intercept },
           ],
-          borderColor: "#FF9800",
+          borderColor: trendColor,
           backgroundColor: "transparent",
           borderDash: [10, 5],
           borderWidth: 2,
@@ -124,6 +132,7 @@ async function renderAbsoluteChart(
 async function renderRelativeChart(
   userEntries: Map<string, { x: Date; y: number }[]>,
   colors: string[],
+  trendColors: string[],
   unit: "kg" | "pct"
 ): Promise<Buffer> {
   let colorIdx = 0;
@@ -139,6 +148,7 @@ async function renderRelativeChart(
     if (data.length === 0) continue;
     const baseline = data[0].y;
     const color = colors[colorIdx % colors.length];
+    const trendColor = trendColors[colorIdx % trendColors.length];
     colorIdx++;
 
     const points = data.map((d) => ({
@@ -172,7 +182,7 @@ async function renderRelativeChart(
             { x: xStart, y: reg.slope * xStart + reg.intercept },
             { x: xEnd, y: reg.slope * xEnd + reg.intercept },
           ],
-          borderColor: "#FF9800",
+          borderColor: trendColor,
           backgroundColor: "transparent",
           borderDash: [10, 5],
           borderWidth: 2,
